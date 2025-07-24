@@ -20,6 +20,7 @@ import { Route as LayoutIndexImport } from './routes/_layout/index'
 import { Route as LayoutSettingsImport } from './routes/_layout/settings'
 import { Route as LayoutItemsImport } from './routes/_layout/items'
 import { Route as LayoutAdminImport } from './routes/_layout/admin'
+import { Route as LayoutItemsTestImport } from './routes/_layout/items.test'
 
 // Create/Update Routes
 
@@ -68,6 +69,11 @@ const LayoutAdminRoute = LayoutAdminImport.update({
   getParentRoute: () => LayoutRoute,
 } as any)
 
+const LayoutItemsTestRoute = LayoutItemsTestImport.update({
+  path: '/test',
+  getParentRoute: () => LayoutItemsRoute,
+} as any)
+
 // Populate the FileRoutesByPath interface
 
 declare module '@tanstack/react-router' {
@@ -108,6 +114,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutIndexImport
       parentRoute: typeof LayoutImport
     }
+    '/_layout/items/test': {
+      preLoaderRoute: typeof LayoutItemsTestImport
+      parentRoute: typeof LayoutItemsImport
+    }
   }
 }
 
@@ -116,7 +126,7 @@ declare module '@tanstack/react-router' {
 export const routeTree = rootRoute.addChildren([
   LayoutRoute.addChildren([
     LayoutAdminRoute,
-    LayoutItemsRoute,
+    LayoutItemsRoute.addChildren([LayoutItemsTestRoute]),
     LayoutSettingsRoute,
     LayoutIndexRoute,
   ]),

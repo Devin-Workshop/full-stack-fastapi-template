@@ -162,3 +162,72 @@ def test_delete_item_not_enough_permissions(
     assert response.status_code == 400
     content = response.json()
     assert content["detail"] == "Not enough permissions"
+
+
+def test_search_items(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    data1 = {"title": "Test Item", "description": "This is a test item"}
+    data2 = {"title": "Another Item", "description": "This contains test in description"}
+    data3 = {"title": "Unrelated", "description": "This won't match"}
+
+    client.post(
+        f"{settings.API_V1_STR}/items/",
+        headers=superuser_token_headers,
+        json=data1,
+    )
+    client.post(
+        f"{settings.API_V1_STR}/items/",
+        headers=superuser_token_headers,
+        json=data2,
+    )
+    client.post(
+        f"{settings.API_V1_STR}/items/",
+        headers=superuser_token_headers,
+        json=data3,
+    )
+
+    response = client.get(
+        f"{settings.API_V1_STR}/items/search?q=Test",
+        headers=superuser_token_headers,
+    )
+    assert response.status_code == 200
+    content = response.json()
+    assert content["count"] == 2
+
+    response = client.get(
+        f"{settings.API_V1_STR}/items/search?q=test",
+        headers=superuser_token_headers,
+    )
+    assert response.status_code == 200
+    content = response.json()
+    assert content["count"] == 2
+
+    response = client.get(
+        f"{settings.API_V1_STR}/items/search?q=nonexistent",
+        headers=superuser_token_headers,
+    )
+    assert response.status_code == 200
+    content = response.json()
+    assert content["count"] == 0
+    assert len(content["data"]) == 0
+
+
+def test_search_items_normal_user(
+    client: TestClient, normal_user_token_headers: dict[str, str]
+) -> None:
+    data = {"title": "User Item", "description": "This is a user's item"}
+    client.post(
+        f"{settings.API_V1_STR}/items/",
+        headers=normal_user_token_headers,
+        json=data,
+    )
+
+    response = client.get(
+        f"{settings.API_V1_STR}/items/search?q=User",
+        headers=normal_user_token_headers,
+    )
+    assert response.status_code == 200
+    content = response.json()
+    assert content["count"] == 1
+    assert content["data"][0]["title"] == "User Item"

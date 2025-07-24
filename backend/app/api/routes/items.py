@@ -2,7 +2,7 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
-from sqlmodel import func, select
+from sqlmodel import func, or_, select
 
 from app.api.deps import CurrentUser, SessionDep
 from app.models import Item, ItemCreate, ItemPublic, ItemsPublic, ItemUpdate, Message
@@ -33,6 +33,71 @@ def read_items(
         statement = (
             select(Item)
             .where(Item.owner_id == current_user.id)
+            .offset(skip)
+            .limit(limit)
+        )
+        items = session.exec(statement).all()
+
+    return ItemsPublic(data=items, count=count)
+
+
+@router.get("/search", response_model=ItemsPublic)
+def search_items(
+    session: SessionDep,
+    current_user: CurrentUser,
+    q: str,
+    skip: int = 0,
+    limit: int = 100
+) -> Any:
+    """
+    Search items by title or description.
+    """
+    if current_user.is_superuser:
+        count_statement = (
+            select(func.count())
+            .select_from(Item)
+            .where(
+                or_(
+                    Item.title.ilike(f"%{q}%"),
+                    Item.description.ilike(f"%{q}%")
+                )
+            )
+        )
+        count = session.exec(count_statement).one()
+        statement = (
+            select(Item)
+            .where(
+                or_(
+                    Item.title.ilike(f"%{q}%"),
+                    Item.description.ilike(f"%{q}%")
+                )
+            )
+            .offset(skip)
+            .limit(limit)
+        )
+        items = session.exec(statement).all()
+    else:
+        count_statement = (
+            select(func.count())
+            .select_from(Item)
+            .where(
+                Item.owner_id == current_user.id,
+                or_(
+                    Item.title.ilike(f"%{q}%"),
+                    Item.description.ilike(f"%{q}%")
+                )
+            )
+        )
+        count = session.exec(count_statement).one()
+        statement = (
+            select(Item)
+            .where(
+                Item.owner_id == current_user.id,
+                or_(
+                    Item.title.ilike(f"%{q}%"),
+                    Item.description.ilike(f"%{q}%")
+                )
+            )
             .offset(skip)
             .limit(limit)
         )

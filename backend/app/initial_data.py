@@ -25,8 +25,8 @@ def init() -> None:
                 description="Remember to update the README and add proper documentation for your project."
             ),
             ItemCreate(
-                title="Database Migration",
-                description="Set up your database migrations using Alembic for production deployment."
+                title="Database Included",
+                description="This app leverages PostgreSQL for its database."
             ),
             ItemCreate(
                 title="API Testing",
